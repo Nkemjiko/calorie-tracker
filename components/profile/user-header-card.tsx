@@ -4,17 +4,19 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 type UserHeaderCardProps = {
   name: string
   email: string
-  avatarSrc: string
+  avatarSrc: string | null
   statusLabel: string
+  fallbackText?: string
 }
 
-export function UserHeaderCard({ name, email, avatarSrc, statusLabel }: UserHeaderCardProps) {
+export function UserHeaderCard({ name, email, avatarSrc, statusLabel, fallbackText }: UserHeaderCardProps) {
   return (
     <section className="flex flex-col items-center gap-4 rounded-2xl border border-border bg-card p-6 text-center">
       <Avatar className="size-20 after:border-2">
         <AvatarImage src={avatarSrc || "/placeholder.svg"} alt={`${name}'s profile photo`} />
         <AvatarFallback className="text-lg font-semibold">
-          {name
+          {fallbackText ||
+            name
             .split(" ")
             .map((part) => part[0])
             .slice(0, 2)

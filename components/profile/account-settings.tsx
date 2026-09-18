@@ -1,6 +1,11 @@
+"use client"
+
+import { useState } from "react"
 import { Bell, ChevronRight, Download, HeartPulse, LogOut, Timer } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { createClient } from "@/lib/supabase/client"
+import { useAuth } from "@/components/auth/auth-provider"
 
 type SettingsItem = {
   id: string
@@ -17,6 +22,16 @@ const ITEMS: SettingsItem[] = [
 ]
 
 export function AccountSettings() {
+  const { user } = useAuth()
+  const [signingOut, setSigningOut] = useState(false)
+
+  const handleSignOut = async () => {
+    setSigningOut(true)
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    setSigningOut(false)
+  }
+
   return (
     <section className="flex flex-col gap-3">
       <h3 className="px-1 text-sm font-semibold text-foreground">Account &amp; settings</h3>
@@ -46,13 +61,17 @@ export function AccountSettings() {
         })}
       </div>
 
-      <button
-        type="button"
-        className="flex items-center justify-center gap-2 rounded-2xl border border-destructive/20 bg-destructive/5 px-4 py-3.5 text-sm font-semibold text-destructive transition-colors hover:bg-destructive/10"
-      >
-        <LogOut className="size-4" />
-        Log Out
-      </button>
+      {user && (
+        <button
+          type="button"
+          onClick={handleSignOut}
+          disabled={signingOut}
+          className="flex items-center justify-center gap-2 rounded-2xl border border-destructive/20 bg-destructive/5 px-4 py-3.5 text-sm font-semibold text-destructive transition-colors hover:bg-destructive/10 disabled:opacity-50"
+        >
+          <LogOut className="size-4" />
+          {signingOut ? "Signing out..." : "Log Out"}
+        </button>
+      )}
     </section>
   )
 }
