@@ -10,7 +10,7 @@ const NAV_ITEMS = [
   { id: "meals", label: "Meals", icon: Utensils, href: "/meals" },
   { id: "fast", label: "Fast", icon: Timer, href: "/fast" },
   { id: "insights", label: "Insights", icon: TrendingUp, href: "/insights" },
-  { id: "profile", label: "Profile", icon: User, href: "/" },
+  { id: "profile", label: "Profile", icon: User, href: "/profile" },
 ] as const
 
 export function BottomNav() {
