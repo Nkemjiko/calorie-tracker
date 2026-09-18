@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils"
 const NAV_ITEMS = [
   { id: "home", label: "Home", icon: Home, href: "/" },
   { id: "meals", label: "Meals", icon: Utensils, href: "/meals" },
-  { id: "fast", label: "Fast", icon: Timer, href: "/" },
+  { id: "fast", label: "Fast", icon: Timer, href: "/fast" },
   { id: "insights", label: "Insights", icon: TrendingUp, href: "/" },
   { id: "profile", label: "Profile", icon: User, href: "/" },
 ] as const
@@ -25,9 +25,9 @@ export function BottomNav() {
         {NAV_ITEMS.map((item) => {
           const Icon = item.icon
           const isActive =
-            item.href === "/meals"
-              ? pathname === "/meals"
-              : item.id === "home" && pathname === "/"
+            item.id === "home"
+              ? pathname === "/"
+              : item.href !== "/" && pathname === item.href
           return (
             <li key={item.id} className="flex-1">
               <Link
