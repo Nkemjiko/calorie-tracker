@@ -9,7 +9,7 @@ const NAV_ITEMS = [
   { id: "home", label: "Home", icon: Home, href: "/" },
   { id: "meals", label: "Meals", icon: Utensils, href: "/meals" },
   { id: "fast", label: "Fast", icon: Timer, href: "/fast" },
-  { id: "insights", label: "Insights", icon: TrendingUp, href: "/" },
+  { id: "insights", label: "Insights", icon: TrendingUp, href: "/insights" },
   { id: "profile", label: "Profile", icon: User, href: "/" },
 ] as const
 
