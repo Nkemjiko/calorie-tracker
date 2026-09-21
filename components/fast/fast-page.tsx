@@ -8,6 +8,8 @@ import { FastTimerRing } from "@/components/fast/fast-timer-ring"
 import { BiologicalState } from "@/components/fast/biological-state"
 import { WeeklyConsistency } from "@/components/fast/weekly-consistency"
 import { WaterTracker } from "@/components/fast/water-tracker"
+import { useFasting } from "@/lib/hooks/use-fasting"
+import { useAuth } from "@/components/auth/auth-provider"
 
 export type FastProtocol = {
   id: string
@@ -16,10 +18,10 @@ export type FastProtocol = {
 }
 
 const PROTOCOLS: FastProtocol[] = [
+  { id: "14-10", label: "14:10", fastingHours: 14 },
   { id: "16-8", label: "16:8", fastingHours: 16 },
   { id: "18-6", label: "18:6", fastingHours: 18 },
   { id: "20-4", label: "20:4", fastingHours: 20 },
-  { id: "custom", label: "Custom", fastingHours: 14 },
 ]
 
 const WATER_GOAL_ML = 2500
@@ -32,68 +34,55 @@ function formatClock(ts: number) {
 }
 
 export function FastPage() {
+  const { user, loading: authLoading } = useAuth()
+  const { activeSession, weeklyHistory, streak, loading, startFast, endFast } = useFasting()
   const [protocolId, setProtocolId] = useState("16-8")
-  const [running, setRunning] = useState(false)
-  // Time banked from a paused/previous fast session, in seconds.
-  const [baseElapsed, setBaseElapsed] = useState(6 * 3600 + 12 * 60)
-  const [startedAt, setStartedAt] = useState<number | null>(null)
   const [now, setNow] = useState<number>(Date.now())
   const [mounted, setMounted] = useState(false)
-
   const [water, setWater] = useState(1500)
+  const [actionLoading, setActionLoading] = useState(false)
 
-  const protocol = PROTOCOLS.find((p) => p.id === protocolId) ?? PROTOCOLS[0]
-  const targetSeconds = protocol.fastingHours * 3600
+  const protocol = PROTOCOLS.find((p) => p.id === protocolId) ?? PROTOCOLS[1]
+  const targetHours = activeSession?.target_hours ?? protocol.fastingHours
+  const targetSeconds = targetHours * 3600
 
-  // Start an active fast on mount so the timer previews live, avoiding
-  // hydration mismatch from Date-based values.
   useEffect(() => {
-    const t = Date.now()
-    setStartedAt(t - baseElapsed * 1000)
-    setNow(t)
-    setRunning(true)
     setMounted(true)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {
-    if (!running) return
+    if (!activeSession) return
     const timer = setInterval(() => setNow(Date.now()), 1000)
     return () => clearInterval(timer)
-  }, [running])
+  }, [activeSession])
 
-  const elapsedSeconds =
-    running && startedAt !== null
-      ? Math.floor((now - startedAt) / 1000)
-      : baseElapsed
+  const elapsedSeconds = useMemo(() => {
+    if (!activeSession || !mounted) return 0
+    const start = new Date(activeSession.start_time).getTime()
+    return Math.floor((now - start) / 1000)
+  }, [activeSession, now, mounted])
 
   const { startLabel, endLabel } = useMemo(() => {
-    if (!running || startedAt === null) {
-      return { startLabel: "--:--", endLabel: "--:--" }
-    }
+    if (!activeSession) return { startLabel: "--:--", endLabel: "--:--" }
+    const start = new Date(activeSession.start_time).getTime()
     return {
-      startLabel: formatClock(startedAt),
-      endLabel: formatClock(startedAt + targetSeconds * 1000),
+      startLabel: formatClock(start),
+      endLabel: formatClock(start + targetSeconds * 1000),
     }
-  }, [running, startedAt, targetSeconds])
+  }, [activeSession, targetSeconds])
 
-  const handleToggle = () => {
-    if (running) {
-      setBaseElapsed(0)
-      setStartedAt(null)
-      setRunning(false)
+  const handleToggle = async () => {
+    if (actionLoading) return
+    setActionLoading(true)
+    if (activeSession) {
+      await endFast()
     } else {
-      const t = Date.now()
-      setStartedAt(t)
-      setNow(t)
-      setBaseElapsed(0)
-      setRunning(true)
+      await startFast(protocol.fastingHours)
     }
+    setActionLoading(false)
   }
 
-  const handleProtocolChange = (id: string) => {
-    setProtocolId(id)
-  }
+  const showLoading = authLoading || loading
 
   return (
     <div className="flex min-h-dvh flex-col bg-secondary/40">
@@ -112,29 +101,44 @@ export function FastPage() {
           <ProtocolSelector
             protocols={PROTOCOLS}
             activeId={protocolId}
-            onSelect={handleProtocolChange}
+            onSelect={setProtocolId}
+            disabled={!!activeSession}
           />
         </header>
 
         <main className="flex flex-1 flex-col gap-4 px-4 pb-8 pt-3">
-          <FastTimerRing
-            running={running}
-            elapsedSeconds={mounted ? elapsedSeconds : baseElapsed}
-            targetSeconds={targetSeconds}
-            startLabel={startLabel}
-            endLabel={endLabel}
-            onToggle={handleToggle}
-          />
+          {showLoading ? (
+            <div className="flex items-center justify-center py-20">
+              <div className="size-8 animate-spin rounded-full border-2 border-brand-green border-t-transparent" />
+            </div>
+          ) : !user ? (
+            <div className="flex flex-col items-center gap-2 py-20 text-center">
+              <p className="text-sm font-medium text-foreground">Sign in to start fasting</p>
+              <p className="text-xs text-muted-foreground">Your fasting sessions will be saved automatically.</p>
+            </div>
+          ) : (
+            <>
+              <FastTimerRing
+                running={!!activeSession}
+                elapsedSeconds={elapsedSeconds}
+                targetSeconds={targetSeconds}
+                startLabel={startLabel}
+                endLabel={endLabel}
+                onToggle={handleToggle}
+                disabled={actionLoading}
+              />
 
-          <BiologicalState elapsedSeconds={mounted ? elapsedSeconds : baseElapsed} />
+              <BiologicalState elapsedSeconds={elapsedSeconds} />
 
-          <WeeklyConsistency />
+              <WeeklyConsistency data={weeklyHistory} streak={streak} />
 
-          <WaterTracker
-            intake={water}
-            goal={WATER_GOAL_ML}
-            onAdd={(amount) => setWater((prev) => Math.min(WATER_GOAL_ML, prev + amount))}
-          />
+              <WaterTracker
+                intake={water}
+                goal={WATER_GOAL_ML}
+                onAdd={(amount) => setWater((prev) => Math.min(WATER_GOAL_ML, prev + amount))}
+              />
+            </>
+          )}
         </main>
       </div>
 

@@ -1,15 +1,15 @@
 "use client"
 
 import { Plus } from "lucide-react"
-import type { FoodItem } from "@/lib/foods"
+import type { FoodRow } from "@/lib/types"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 
 type FoodCardProps = {
-  food: FoodItem
+  food: FoodRow
   queuedCount: number
-  onAdd: (food: FoodItem) => void
+  onAdd: (food: FoodRow) => void
 }
 
 export function FoodCard({ food, queuedCount, onAdd }: FoodCardProps) {
@@ -20,7 +20,7 @@ export function FoodCard({ food, queuedCount, onAdd }: FoodCardProps) {
           <div className="flex flex-col gap-1">
             <h3 className="text-sm font-semibold leading-tight text-foreground">{food.name}</h3>
             <p className="text-xs text-muted-foreground">
-              <span className="font-semibold text-brand-green">{food.calories} kcal</span> per {food.unit}
+              <span className="font-semibold text-brand-green">{food.base_calories} kcal</span> per {food.serving_unit}
             </p>
           </div>
           <button
@@ -43,15 +43,15 @@ export function FoodCard({ food, queuedCount, onAdd }: FoodCardProps) {
         <div className="flex flex-wrap gap-1.5">
           <Badge variant="secondary" className="gap-1 font-normal">
             <span className="size-1.5 rounded-full bg-brand-green" />
-            {food.protein}g Protein
+            {food.protein_g}g Protein
           </Badge>
           <Badge variant="secondary" className="gap-1 font-normal">
             <span className="size-1.5 rounded-full bg-brand-orange" />
-            {food.carbs}g Carbs
+            {food.carbs_g}g Carbs
           </Badge>
           <Badge variant="secondary" className="gap-1 font-normal">
             <span className="size-1.5 rounded-full bg-amber-400" />
-            {food.fat}g Fat
+            {food.fat_g}g Fat
           </Badge>
         </div>
       </CardContent>

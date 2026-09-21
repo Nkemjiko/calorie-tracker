@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from "react"
 import { Minus, Plus } from "lucide-react"
-import type { FoodItem, MealTime } from "@/lib/foods"
+import type { MealTime } from "@/lib/foods"
 import { MEAL_TIMES } from "@/lib/foods"
+import type { FoodRow } from "@/lib/types"
 import {
   Dialog,
   DialogContent,
@@ -24,17 +25,16 @@ import {
 } from "@/components/ui/select"
 
 type PortionDialogProps = {
-  food: FoodItem | null
+  food: FoodRow | null
   open: boolean
   onOpenChange: (open: boolean) => void
-  onConfirm: (food: FoodItem, portions: number, meal: MealTime) => void
+  onConfirm: (food: FoodRow, portions: number, meal: MealTime) => void
 }
 
 export function PortionDialog({ food, open, onOpenChange, onConfirm }: PortionDialogProps) {
   const [portions, setPortions] = useState(1)
   const [meal, setMeal] = useState<MealTime>("Lunch")
 
-  // Reset the selector each time a new food opens the dialog.
   useEffect(() => {
     if (open) {
       setPortions(1)
@@ -44,10 +44,10 @@ export function PortionDialog({ food, open, onOpenChange, onConfirm }: PortionDi
 
   if (!food) return null
 
-  const totalCalories = Math.round(food.calories * portions)
-  const totalProtein = Math.round(food.protein * portions)
-  const totalCarbs = Math.round(food.carbs * portions)
-  const totalFat = Math.round(food.fat * portions)
+  const totalCalories = Math.round(food.base_calories * portions)
+  const totalProtein = Math.round(food.protein_g * portions)
+  const totalCarbs = Math.round(food.carbs_g * portions)
+  const totalFat = Math.round(food.fat_g * portions)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -55,7 +55,7 @@ export function PortionDialog({ food, open, onOpenChange, onConfirm }: PortionDi
         <DialogHeader>
           <DialogTitle>{food.name}</DialogTitle>
           <DialogDescription>
-            {food.calories} kcal per {food.unit} · adjust your portion
+            {food.base_calories} kcal per {food.serving_unit} · adjust your portion
           </DialogDescription>
         </DialogHeader>
 
@@ -74,7 +74,7 @@ export function PortionDialog({ food, open, onOpenChange, onConfirm }: PortionDi
             <div className="flex min-w-24 flex-col items-center">
               <span className="text-3xl font-bold tabular-nums text-foreground">{portions}</span>
               <span className="text-xs text-muted-foreground">
-                {food.unit}
+                {food.serving_unit}
                 {portions !== 1 ? "s" : ""}
               </span>
             </div>

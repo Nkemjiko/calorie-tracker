@@ -12,6 +12,7 @@ type FastTimerRingProps = {
   startLabel: string
   endLabel: string
   onToggle: () => void
+  disabled?: boolean
 }
 
 function formatDuration(totalSeconds: number) {
@@ -29,6 +30,7 @@ export function FastTimerRing({
   startLabel,
   endLabel,
   onToggle,
+  disabled,
 }: FastTimerRingProps) {
   const percent = (elapsedSeconds / targetSeconds) * 100
   const complete = elapsedSeconds >= targetSeconds
@@ -87,6 +89,7 @@ export function FastTimerRing({
       <Button
         type="button"
         onClick={onToggle}
+        disabled={disabled}
         className={cn(
           "h-12 w-full text-base font-semibold",
           running

@@ -3,27 +3,27 @@
 import { CalendarCheck } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
+import type { WeeklyFastDay } from "@/lib/hooks/use-fasting"
 
-type DayFast = {
-  day: string
-  // Fasting hours completed that day; 0 means a missed day.
-  hours: number
-  goal: number
+type WeeklyConsistencyProps = {
+  data: WeeklyFastDay[]
+  streak: number
 }
 
-const WEEK: DayFast[] = [
-  { day: "M", hours: 16, goal: 16 },
-  { day: "T", hours: 17, goal: 16 },
-  { day: "W", hours: 12, goal: 16 },
-  { day: "T", hours: 16, goal: 16 },
+const FALLBACK: WeeklyFastDay[] = [
+  { day: "M", hours: 0, goal: 16 },
+  { day: "T", hours: 0, goal: 16 },
+  { day: "W", hours: 0, goal: 16 },
+  { day: "T", hours: 0, goal: 16 },
   { day: "F", hours: 0, goal: 16 },
-  { day: "S", hours: 18, goal: 16 },
-  { day: "S", hours: 8, goal: 16 },
+  { day: "S", hours: 0, goal: 16 },
+  { day: "S", hours: 0, goal: 16 },
 ]
 
-export function WeeklyConsistency() {
-  const completed = WEEK.filter((d) => d.hours >= d.goal).length
-  const maxHours = Math.max(...WEEK.map((d) => Math.max(d.hours, d.goal)))
+export function WeeklyConsistency({ data, streak }: WeeklyConsistencyProps) {
+  const week = data.length > 0 ? data : FALLBACK
+  const completed = week.filter((d) => d.hours >= d.goal).length
+  const maxHours = Math.max(...week.map((d) => Math.max(d.hours, d.goal)), 1)
 
   return (
     <Card>
@@ -39,10 +39,9 @@ export function WeeklyConsistency() {
           <span className="text-muted-foreground"> / 7 fasts</span>
         </span>
       </CardHeader>
-
       <CardContent>
         <div className="flex items-end justify-between gap-2">
-          {WEEK.map((d, i) => {
+          {week.map((d, i) => {
             const met = d.hours >= d.goal
             const missed = d.hours === 0
             const heightPercent = Math.max(6, (d.hours / maxHours) * 100)
@@ -69,6 +68,14 @@ export function WeeklyConsistency() {
             )
           })}
         </div>
+
+        {streak > 0 && (
+          <div className="mt-3 flex items-center justify-center">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-orange-soft px-3 py-1 text-xs font-semibold text-brand-orange">
+              {streak} day streak
+            </span>
+          </div>
+        )}
 
         <div className="mt-4 flex items-center justify-center gap-4 text-[11px] text-muted-foreground">
           <span className="flex items-center gap-1.5">

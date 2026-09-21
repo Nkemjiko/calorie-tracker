@@ -27,9 +27,10 @@ type ActivePlateBarProps = {
   items: PlateItem[]
   onRemove: (key: string) => void
   onConfirm: () => void
+  disabled?: boolean
 }
 
-export function ActivePlateBar({ items, onRemove, onConfirm }: ActivePlateBarProps) {
+export function ActivePlateBar({ items, onRemove, onConfirm, disabled }: ActivePlateBarProps) {
   const [open, setOpen] = useState(false)
 
   if (items.length === 0) return null
@@ -96,6 +97,7 @@ export function ActivePlateBar({ items, onRemove, onConfirm }: ActivePlateBarPro
                 <Button
                   type="button"
                   className="w-full bg-brand-orange text-white hover:bg-brand-orange/90"
+                  disabled={disabled}
                   onClick={() => {
                     onConfirm()
                     setOpen(false)
@@ -111,6 +113,7 @@ export function ActivePlateBar({ items, onRemove, onConfirm }: ActivePlateBarPro
           <Button
             type="button"
             className="shrink-0 bg-brand-orange text-white hover:bg-brand-orange/90"
+            disabled={disabled}
             onClick={onConfirm}
           >
             <Check data-icon="inline-start" />

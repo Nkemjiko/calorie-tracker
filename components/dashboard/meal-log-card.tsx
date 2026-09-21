@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Plus, Trash2, Utensils } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -14,12 +14,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import {
-  NIGERIAN_FOODS,
-  MEAL_TIMES,
-  type MealTime,
-} from "@/lib/foods"
+import { MEAL_TIMES, type MealTime } from "@/lib/foods"
 import type { LoggedMeal } from "@/components/dashboard/dashboard"
+import { createClient } from "@/lib/supabase/client"
+import type { FoodRow } from "@/lib/types"
 
 type MealLogCardProps = {
   meals: LoggedMeal[]
@@ -30,6 +28,18 @@ type MealLogCardProps = {
 export function MealLogCard({ meals, onAdd, onRemove }: MealLogCardProps) {
   const [foodId, setFoodId] = useState<string>("")
   const [mealTime, setMealTime] = useState<MealTime>("Breakfast")
+  const [foods, setFoods] = useState<FoodRow[]>([])
+
+  useEffect(() => {
+    const supabase = createClient()
+    supabase
+      .from("foods")
+      .select("*")
+      .order("name", { ascending: true })
+      .then(({ data, error }) => {
+        if (!error && data) setFoods(data as FoodRow[])
+      })
+  }, [])
 
   const handleAdd = () => {
     if (!foodId) return
@@ -60,9 +70,9 @@ export function MealLogCard({ meals, onAdd, onRemove }: MealLogCardProps) {
             <SelectContent>
               <SelectGroup>
                 <SelectLabel>Nigerian dishes</SelectLabel>
-                {NIGERIAN_FOODS.map((food) => (
+                {foods.map((food) => (
                   <SelectItem key={food.id} value={food.id}>
-                    {food.name} · {food.calories} kcal
+                    {food.name} · {food.base_calories} kcal
                   </SelectItem>
                 ))}
               </SelectGroup>
@@ -111,14 +121,14 @@ export function MealLogCard({ meals, onAdd, onRemove }: MealLogCardProps) {
                 className="flex items-center gap-3 rounded-xl border border-border bg-card p-3"
               >
                 <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-brand-green/10 text-sm font-semibold text-brand-green">
-                  {meal.food.calories}
+                  {meal.food.base_calories}
                 </div>
                 <div className="flex min-w-0 flex-1 flex-col">
                   <span className="truncate text-sm font-medium text-foreground">
                     {meal.food.name}
                   </span>
                   <span className="text-xs text-muted-foreground">
-                    {meal.mealTime} · {meal.food.portion} · {meal.food.calories} kcal
+                    {meal.mealTime} · {meal.food.serving_unit} · {meal.food.base_calories} kcal
                   </span>
                 </div>
                 <Button
