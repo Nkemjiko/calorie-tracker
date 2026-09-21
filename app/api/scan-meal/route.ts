@@ -2,7 +2,7 @@ import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { generateText } from "ai";
 import { createClient } from "@supabase/supabase-js";
 
-const DAILY_SCAN_LIMIT = 5;
+const FREE_DAILY_SCAN_LIMIT = 3;
 
 const SYSTEM_PROMPT = `You are an expert nutritionist specializing in Nigerian and global cuisines. Analyze the image carefully. Identify the dish (especially if it is a Nigerian meal like Jollof Rice, Eba, Egusi Soup, Amala, Suya, Pounded Yam, Akara, Moi Moi, Pepper Soup, etc.), estimate the portion size based on visual cues, and estimate the total calories, protein, carbs, and fat.
 
@@ -36,7 +36,7 @@ export async function POST(request: Request) {
       return jsonRes({ error: "No image provided" }, 400);
     }
 
-    // --- Auth: require a valid user session for quota tracking ---
+    // --- Auth: require a valid user session ---
     if (!accessToken) {
       return jsonRes(
         { error: "Authentication required to scan meals." },
@@ -62,30 +62,42 @@ export async function POST(request: Request) {
 
     const userId = userData.user.id;
 
-    // --- Daily quota check ---
+    // --- Fetch profile for quota + Pro status ---
     const { data: profile } = await supabase
       .from("profiles")
-      .select("scan_count, scan_date")
+      .select("is_pro, ai_scans_today, last_scan_date")
       .eq("id", userId)
       .maybeSingle();
 
     const today = new Date().toISOString().slice(0, 10);
+    const isPro = profile?.is_pro ?? false;
+    const lastScanDate = profile?.last_scan_date
+      ? new Date(profile.last_scan_date).toISOString().slice(0, 10)
+      : null;
+    let scansToday = profile?.ai_scans_today ?? 0;
 
-    if (profile) {
-      const scanDate = profile.scan_date;
-      const scanCount = profile.scan_count ?? 0;
+    // --- Reset daily counter if date changed ---
+    if (lastScanDate !== today) {
+      scansToday = 0;
+      await supabase
+        .from("profiles")
+        .update({ ai_scans_today: 0, last_scan_date: today })
+        .eq("id", userId);
+    }
 
-      if (scanDate === today && scanCount >= DAILY_SCAN_LIMIT) {
-        return jsonRes(
-          {
-            error: `You've reached your daily limit of ${DAILY_SCAN_LIMIT} AI meal scans. Upgrade to continue scanning meals.`,
-            quotaExceeded: true,
-            scansUsed: scanCount,
-            dailyLimit: DAILY_SCAN_LIMIT,
-          },
-          429
-        );
-      }
+    // --- Enforce free-tier daily limit ---
+    if (!isPro && scansToday >= FREE_DAILY_SCAN_LIMIT) {
+      return jsonRes(
+        {
+          error:
+            "You have reached your daily limit of 3 free AI scans. Upgrade to Pro for unlimited scans.",
+          quotaExceeded: true,
+          scansUsed: scansToday,
+          dailyLimit: FREE_DAILY_SCAN_LIMIT,
+          isPro: false,
+        },
+        403
+      );
     }
 
     // --- Gemini API key check ---
@@ -158,18 +170,21 @@ export async function POST(request: Request) {
       );
     }
 
-    // --- Increment scan count ---
-    const currentCount =
-      profile && profile.scan_date === today ? (profile.scan_count ?? 0) : 0;
+    // --- Increment scan count (only after successful AI response) ---
+    const newCount = scansToday + 1;
     await supabase
       .from("profiles")
-      .update({ scan_count: currentCount + 1, scan_date: today })
+      .update({
+        ai_scans_today: newCount,
+        last_scan_date: today,
+      })
       .eq("id", userId);
 
     return jsonRes({
       ...parsed,
-      scansUsed: currentCount + 1,
-      dailyLimit: DAILY_SCAN_LIMIT,
+      scansUsed: newCount,
+      dailyLimit: isPro ? null : FREE_DAILY_SCAN_LIMIT,
+      isPro,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";

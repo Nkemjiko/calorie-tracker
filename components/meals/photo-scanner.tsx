@@ -1,8 +1,8 @@
 "use client";
 
-import { useRef, useState, type ChangeEvent } from "react";
+import { useRef, useState, useEffect, type ChangeEvent } from "react";
 import imageCompression from "browser-image-compression";
-import { Camera, Loader2, X, Check, AlertCircle, Sparkles } from "lucide-react";
+import { Camera, Loader2, X, Check, AlertCircle, Sparkles, Lock } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -51,7 +51,7 @@ type PhotoScannerProps = {
   onConfirm: (food: FoodRow, portions: number, meal: MealTime) => void;
 };
 
-const DAILY_LIMIT = 5;
+const FREE_DAILY_LIMIT = 3;
 
 export function PhotoScanner({ onConfirm }: PhotoScannerProps) {
   const cameraRef = useRef<HTMLInputElement>(null);
@@ -66,6 +66,7 @@ export function PhotoScanner({ onConfirm }: PhotoScannerProps) {
   const [meal, setMeal] = useState<MealTime>("Lunch");
   const [portions, setPortions] = useState(1);
   const [scansUsed, setScansUsed] = useState(0);
+  const [isPro, setIsPro] = useState(false);
 
   // Editable fields
   const [editName, setEditName] = useState("");
@@ -75,6 +76,21 @@ export function PhotoScanner({ onConfirm }: PhotoScannerProps) {
   const [editProtein, setEditProtein] = useState("0");
   const [editCarbs, setEditCarbs] = useState("0");
   const [editFat, setEditFat] = useState("0");
+
+  useEffect(() => {
+    const fetchProStatus = async () => {
+      const supabase = createClient();
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) return;
+      const { data } = await supabase
+        .from("profiles")
+        .select("is_pro")
+        .eq("id", userData.user.id)
+        .maybeSingle();
+      setIsPro(data?.is_pro ?? false);
+    };
+    fetchProStatus();
+  }, []);
 
   async function handleFile(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -90,12 +106,10 @@ export function PhotoScanner({ onConfirm }: PhotoScannerProps) {
     setPreview(null);
     setManualMode(false);
 
-    // Show preview immediately
     const previewUrl = URL.createObjectURL(file);
     setPreview(previewUrl);
 
     try {
-      // Compress image to <1MB before sending
       const compressed = await imageCompression(file, {
         maxSizeMB: 1,
         maxWidthOrHeight: 1024,
@@ -108,7 +122,6 @@ export function PhotoScanner({ onConfirm }: PhotoScannerProps) {
         reader.readAsDataURL(compressed);
       });
 
-      // Get current session access token
       const supabase = createClient();
       const { data: sessionData } = await supabase.auth.getSession();
       const accessToken = sessionData.session?.access_token;
@@ -130,16 +143,8 @@ export function PhotoScanner({ onConfirm }: PhotoScannerProps) {
         setQuotaExceeded(true);
         setError(data.error);
         setManualMode(true);
+        resetEditFields();
         setEditOpen(true);
-        setEditName("");
-        setEditCategory("Swallows");
-        setEditUnit("serving");
-        setEditCalories("0");
-        setEditProtein("0");
-        setEditCarbs("0");
-        setEditFat("0");
-        setMeal("Lunch");
-        setPortions(1);
         setLoading(false);
         return;
       }
@@ -147,16 +152,8 @@ export function PhotoScanner({ onConfirm }: PhotoScannerProps) {
       if (data.fallback) {
         setError(data.error);
         setManualMode(true);
+        resetEditFields();
         setEditOpen(true);
-        setEditName("");
-        setEditCategory("Swallows");
-        setEditUnit("serving");
-        setEditCalories("0");
-        setEditProtein("0");
-        setEditCarbs("0");
-        setEditFat("0");
-        setMeal("Lunch");
-        setPortions(1);
         setLoading(false);
         return;
       }
@@ -164,16 +161,8 @@ export function PhotoScanner({ onConfirm }: PhotoScannerProps) {
       if (!res.ok) {
         setError(data.error || "Failed to analyze image");
         setManualMode(true);
+        resetEditFields();
         setEditOpen(true);
-        setEditName("");
-        setEditCategory("Swallows");
-        setEditUnit("serving");
-        setEditCalories("0");
-        setEditProtein("0");
-        setEditCarbs("0");
-        setEditFat("0");
-        setMeal("Lunch");
-        setPortions(1);
         setLoading(false);
         return;
       }
@@ -181,6 +170,7 @@ export function PhotoScanner({ onConfirm }: PhotoScannerProps) {
       const scan: ScanResult = data;
       setResult(scan);
       setScansUsed(data.scansUsed ?? 0);
+      setIsPro(data.isPro ?? false);
       setEditName(scan.food_name);
       setEditCategory(
         CATEGORIES.includes(scan.category as (typeof CATEGORIES)[number])
@@ -199,18 +189,22 @@ export function PhotoScanner({ onConfirm }: PhotoScannerProps) {
     } catch {
       setError("Failed to process the image. You can still log your meal manually.");
       setManualMode(true);
+      resetEditFields();
       setEditOpen(true);
-      setEditName("");
-      setEditCategory("Swallows");
-      setEditUnit("serving");
-      setEditCalories("0");
-      setEditProtein("0");
-      setEditCarbs("0");
-      setEditFat("0");
-      setMeal("Lunch");
-      setPortions(1);
       setLoading(false);
     }
+  }
+
+  function resetEditFields() {
+    setEditName("");
+    setEditCategory("Swallows");
+    setEditUnit("serving");
+    setEditCalories("0");
+    setEditProtein("0");
+    setEditCarbs("0");
+    setEditFat("0");
+    setMeal("Lunch");
+    setPortions(1);
   }
 
   async function handleConfirmAdd() {
@@ -225,7 +219,6 @@ export function PhotoScanner({ onConfirm }: PhotoScannerProps) {
     const carbsG = parseFloat(editCarbs) || 0;
     const fatG = parseFloat(editFat) || 0;
 
-    // Check if food already exists by name
     const { data: existing } = await supabase
       .from("foods")
       .select("*")
@@ -283,7 +276,7 @@ export function PhotoScanner({ onConfirm }: PhotoScannerProps) {
     }
   }
 
-  const scansRemaining = DAILY_LIMIT - scansUsed;
+  const scansRemaining = FREE_DAILY_LIMIT - scansUsed;
 
   return (
     <>
@@ -381,11 +374,11 @@ export function PhotoScanner({ onConfirm }: PhotoScannerProps) {
             </div>
           )}
 
-          {!manualMode && scansRemaining > 0 && (
+          {!manualMode && !isPro && scansRemaining > 0 && (
             <div className="flex items-center justify-between rounded-lg bg-secondary/60 px-3 py-1.5 text-xs text-muted-foreground">
               <span>AI scans today</span>
               <span className="font-medium tabular-nums">
-                {scansUsed} / {DAILY_LIMIT} · {scansRemaining} left
+                {scansUsed} / {FREE_DAILY_LIMIT} · {scansRemaining} left
               </span>
             </div>
           )}
@@ -455,19 +448,36 @@ export function PhotoScanner({ onConfirm }: PhotoScannerProps) {
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-2">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-muted-foreground">Protein (g)</label>
-                <Input type="number" min={0} value={editProtein} onChange={(e) => setEditProtein(e.target.value)} />
+            {/* Macros: gated for free users */}
+            <div className="relative">
+              <div className={isPro ? "" : "pointer-events-none select-none blur-sm"}>
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-medium text-muted-foreground">Protein (g)</label>
+                    <Input type="number" min={0} value={editProtein} onChange={(e) => setEditProtein(e.target.value)} />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-medium text-muted-foreground">Carbs (g)</label>
+                    <Input type="number" min={0} value={editCarbs} onChange={(e) => setEditCarbs(e.target.value)} />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-medium text-muted-foreground">Fat (g)</label>
+                    <Input type="number" min={0} value={editFat} onChange={(e) => setEditFat(e.target.value)} />
+                  </div>
+                </div>
               </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-muted-foreground">Carbs (g)</label>
-                <Input type="number" min={0} value={editCarbs} onChange={(e) => setEditCarbs(e.target.value)} />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-muted-foreground">Fat (g)</label>
-                <Input type="number" min={0} value={editFat} onChange={(e) => setEditFat(e.target.value)} />
-              </div>
+
+              {!isPro && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <a
+                    href="/pro"
+                    className="flex items-center gap-1.5 rounded-full bg-foreground px-3 py-1.5 text-xs font-semibold text-background shadow-lg"
+                  >
+                    <Lock className="size-3" />
+                    Unlock Macros with Pro
+                  </a>
+                </div>
+              )}
             </div>
 
             <div className="rounded-xl bg-secondary/60 p-3 text-center">

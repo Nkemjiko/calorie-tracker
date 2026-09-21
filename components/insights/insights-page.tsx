@@ -10,12 +10,15 @@ import { MacroDonut } from "@/components/insights/macro-donut"
 import { TopFoods } from "@/components/insights/top-foods"
 import { useInsights } from "@/lib/hooks/use-insights"
 import { useAuth } from "@/components/auth/auth-provider"
+import { useProfile } from "@/lib/hooks/use-profile"
 
 export function InsightsPage() {
   const { user, loading: authLoading } = useAuth()
+  const { profile } = useProfile()
   const [period, setPeriod] = useState<InsightPeriod>("weekly")
   const { data, loading } = useInsights(period)
 
+  const isPro = profile?.is_pro ?? false
   const showLoading = authLoading || loading
 
   return (
@@ -49,7 +52,7 @@ export function InsightsPage() {
             <>
               <MetricCards metrics={data.metrics} />
               <CalorieFastingChart data={data.chart} />
-              <MacroDonut data={data.macros} />
+              <MacroDonut data={data.macros} isPro={isPro} />
               <TopFoods foods={data.topFoods} />
             </>
           )}

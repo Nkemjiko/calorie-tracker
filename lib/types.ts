@@ -38,5 +38,10 @@ export type ProfileRow = {
   fasting_goal_hours: number;
   weight_kg: number | null;
   target_weight_kg: number | null;
+  is_pro: boolean;
+  ai_scans_today: number;
+  last_scan_date: string | null;
+  scan_count: number | null;
+  scan_date: string | null;
   created_at: string;
 };

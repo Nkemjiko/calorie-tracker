@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { Timer } from "lucide-react"
+import { Timer, Lock } from "lucide-react"
 import { BottomNav } from "@/components/dashboard/bottom-nav"
 import { ProtocolSelector } from "@/components/fast/protocol-selector"
 import { FastTimerRing } from "@/components/fast/fast-timer-ring"
@@ -10,6 +10,8 @@ import { WeeklyConsistency } from "@/components/fast/weekly-consistency"
 import { WaterTracker } from "@/components/fast/water-tracker"
 import { useFasting } from "@/lib/hooks/use-fasting"
 import { useAuth } from "@/components/auth/auth-provider"
+import { useProfile } from "@/lib/hooks/use-profile"
+import { Input } from "@/components/ui/input"
 
 export type FastProtocol = {
   id: string
@@ -17,11 +19,9 @@ export type FastProtocol = {
   fastingHours: number
 }
 
-const PROTOCOLS: FastProtocol[] = [
-  { id: "14-10", label: "14:10", fastingHours: 14 },
+const STANDARD_PROTOCOLS: FastProtocol[] = [
   { id: "16-8", label: "16:8", fastingHours: 16 },
   { id: "18-6", label: "18:6", fastingHours: 18 },
-  { id: "20-4", label: "20:4", fastingHours: 20 },
 ]
 
 const WATER_GOAL_ML = 2500
@@ -35,14 +35,18 @@ function formatClock(ts: number) {
 
 export function FastPage() {
   const { user, loading: authLoading } = useAuth()
+  const { profile } = useProfile()
   const { activeSession, weeklyHistory, streak, loading, startFast, endFast } = useFasting()
   const [protocolId, setProtocolId] = useState("16-8")
   const [now, setNow] = useState<number>(Date.now())
   const [mounted, setMounted] = useState(false)
   const [water, setWater] = useState(1500)
   const [actionLoading, setActionLoading] = useState(false)
+  const [customHours, setCustomHours] = useState("20")
 
-  const protocol = PROTOCOLS.find((p) => p.id === protocolId) ?? PROTOCOLS[1]
+  const isPro = profile?.is_pro ?? false
+
+  const protocol = STANDARD_PROTOCOLS.find((p) => p.id === protocolId) ?? STANDARD_PROTOCOLS[0]
   const targetHours = activeSession?.target_hours ?? protocol.fastingHours
   const targetSeconds = targetHours * 3600
 
@@ -99,11 +103,46 @@ export function FastPage() {
           </div>
 
           <ProtocolSelector
-            protocols={PROTOCOLS}
+            protocols={STANDARD_PROTOCOLS}
             activeId={protocolId}
             onSelect={setProtocolId}
             disabled={!!activeSession}
           />
+
+          {/* Custom schedule — Pro only */}
+          <div className="relative rounded-2xl border border-border bg-card p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-1">
+                <label className="text-sm font-semibold text-foreground">Custom Schedule</label>
+                <p className="text-xs text-muted-foreground">Set your own fasting hours</p>
+              </div>
+              <div className={isPro ? "" : "pointer-events-none select-none blur-sm"}>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    min={1}
+                    max={23}
+                    value={customHours}
+                    onChange={(e) => setCustomHours(e.target.value)}
+                    className="w-20"
+                  />
+                  <span className="text-sm text-muted-foreground">hrs</span>
+                </div>
+              </div>
+            </div>
+
+            {!isPro && (
+              <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-card/60">
+                <a
+                  href="/pro"
+                  className="flex items-center gap-1.5 rounded-full bg-foreground px-3 py-1.5 text-xs font-semibold text-background shadow-lg"
+                >
+                  <Lock className="size-3" />
+                  Unlock with Pro
+                </a>
+              </div>
+            )}
+          </div>
         </header>
 
         <main className="flex flex-1 flex-col gap-4 px-4 pb-8 pt-3">
