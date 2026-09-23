@@ -18,12 +18,23 @@ const FEATURES = [
 
 type Plan = "monthly" | "yearly"
 
-const PRICING: Record<Plan, { amount: number; display: string; period: string }> = {
-  monthly: { amount: 2500, display: "₦2,500", period: "per month" },
-  yearly: { amount: 20000, display: "₦20,000", period: "per year" },
+export type PlanPricing = {
+  actual: number
+  display: string
+  originalDisplay: string
+  period: string
 }
 
-export function ProPage() {
+export type PricingData = {
+  currency: "NGN" | "USD"
+  plans: Record<Plan, PlanPricing>
+}
+
+type ProPageProps = {
+  pricing: PricingData
+}
+
+export function ProPage({ pricing }: ProPageProps) {
   const { user } = useAuth()
   const { profile } = useProfile()
   const [selectedPlan, setSelectedPlan] = useState<Plan>("monthly")
@@ -51,7 +62,8 @@ export function ProPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           plan: selectedPlan,
-          amount: PRICING[selectedPlan].amount,
+          amount: pricing.plans[selectedPlan].actual,
+          currency: pricing.currency,
           accessToken,
         }),
       })
@@ -123,6 +135,13 @@ export function ProPage() {
           {!isPro && (
             <>
               <div className="flex flex-col gap-3">
+                {/* Save 20% badge */}
+                <div className="flex justify-center">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-green/10 px-3 py-1 text-xs font-semibold text-brand-green">
+                    Save 20% — Limited time offer
+                  </span>
+                </div>
+
                 <button
                   type="button"
                   onClick={() => setSelectedPlan("monthly")}
@@ -136,9 +155,16 @@ export function ProPage() {
                     <span className="text-sm font-semibold text-foreground">Monthly</span>
                     <span className="text-xs text-muted-foreground">Billed every month</span>
                   </div>
-                  <div className="flex flex-col items-end">
-                    <span className="text-xl font-bold text-foreground">₦2,500</span>
-                    <span className="text-xs text-muted-foreground">/month</span>
+                  <div className="flex flex-col items-end gap-0.5">
+                    <span className="text-xs text-muted-foreground line-through">
+                      {pricing.plans.monthly.originalDisplay}
+                    </span>
+                    <span className="text-xl font-bold text-foreground">
+                      {pricing.plans.monthly.display}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      /{pricing.plans.monthly.period}
+                    </span>
                   </div>
                 </button>
 
@@ -155,14 +181,21 @@ export function ProPage() {
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-semibold text-foreground">Yearly</span>
                       <span className="rounded-full bg-brand-green/10 px-2 py-0.5 text-[10px] font-semibold text-brand-green">
-                        Save 33%
+                        Best value
                       </span>
                     </div>
                     <span className="text-xs text-muted-foreground">Billed once a year</span>
                   </div>
-                  <div className="flex flex-col items-end">
-                    <span className="text-xl font-bold text-foreground">₦20,000</span>
-                    <span className="text-xs text-muted-foreground">/year</span>
+                  <div className="flex flex-col items-end gap-0.5">
+                    <span className="text-xs text-muted-foreground line-through">
+                      {pricing.plans.yearly.originalDisplay}
+                    </span>
+                    <span className="text-xl font-bold text-foreground">
+                      {pricing.plans.yearly.display}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      /{pricing.plans.yearly.period}
+                    </span>
                   </div>
                 </button>
               </div>
