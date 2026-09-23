@@ -8,6 +8,7 @@ import { GoalsCard } from "@/components/dashboard/goals-card"
 import { MealLogCard } from "@/components/dashboard/meal-log-card"
 import { BottomNav } from "@/components/dashboard/bottom-nav"
 import { useAuth } from "@/components/auth/auth-provider"
+import { AuthModal } from "@/components/auth/auth-modal"
 import { useMeals } from "@/lib/hooks/use-meals"
 import { useProfile } from "@/lib/hooks/use-profile"
 import { useFasting } from "@/lib/hooks/use-fasting"
@@ -34,6 +35,7 @@ function inferMealTime(loggedAt: string): MealTime {
 
 export function Dashboard() {
   const { user, loading: authLoading } = useAuth()
+  const [authOpen, setAuthOpen] = useState(false)
   const { meals: dbMeals, loading: mealsLoading, deleteMeal, refetch } = useMeals()
   const { profile, loading: profileLoading, updateProfile } = useProfile()
   const { activeSession, startFast, endFast } = useFasting()
@@ -127,10 +129,34 @@ export function Dashboard() {
 
   if (!user) {
     return (
-      <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col items-center justify-center gap-2 px-4 text-center">
-        <p className="text-lg font-semibold text-foreground">Welcome to NaijaFast</p>
-        <p className="text-sm text-muted-foreground">Sign in to track your meals, fasting, and progress.</p>
-      </div>
+      <>
+        <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col items-center justify-center gap-6 px-4 text-center">
+          <div className="flex flex-col gap-2">
+            <p className="text-2xl font-bold text-foreground">Welcome to NaijaFast</p>
+            <p className="text-sm text-muted-foreground">
+              Sign in to track your meals, fasting, and progress.
+            </p>
+          </div>
+          <div className="flex flex-col gap-3 w-full max-w-xs">
+            <Button
+              size="lg"
+              className="w-full bg-brand-green text-white hover:bg-brand-green/90"
+              onClick={() => setAuthOpen(true)}
+            >
+              Get Started
+            </Button>
+            <Button
+              size="lg"
+              variant="outline"
+              className="w-full"
+              onClick={() => setAuthOpen(true)}
+            >
+              I already have an account
+            </Button>
+          </div>
+        </div>
+        <AuthModal open={authOpen} onOpenChange={setAuthOpen} />
+      </>
     )
   }
 
