@@ -21,7 +21,12 @@ type AuthModalProps = {
 };
 
 function redirectTo() {
-  return `${window.location.origin}/auth/callback`;
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+  const vercelUrl = process.env.NEXT_PUBLIC_VERCEL_URL
+    ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`
+    : null;
+  const origin = siteUrl ?? vercelUrl ?? window.location.origin;
+  return `${origin}/auth/callback`;
 }
 
 export function AuthModal({ open, onOpenChange }: AuthModalProps) {
