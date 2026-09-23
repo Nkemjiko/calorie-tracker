@@ -65,16 +65,28 @@ export function MealLogCard({ meals, onAdd, onRemove }: MealLogCardProps) {
         <div className="flex flex-col gap-2 sm:flex-row">
           <Select value={foodId} onValueChange={(v) => setFoodId(v as string)}>
             <SelectTrigger className="w-full flex-1" aria-label="Choose a dish">
-              <SelectValue placeholder="Choose a Nigerian dish" />
+              <SelectValue>
+                {(value: string) => {
+                  if (!value) return <span className="text-muted-foreground">Select a dish...</span>
+                  const selected = foods.find((f) => f.id === value)
+                  return selected ? `${selected.name} · ${selected.base_calories} kcal` : "Select a dish..."
+                }}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
                 <SelectLabel>Nigerian dishes</SelectLabel>
-                {foods.map((food) => (
-                  <SelectItem key={food.id} value={food.id}>
-                    {food.name} · {food.base_calories} kcal
+                {foods.length === 0 ? (
+                  <SelectItem value="_loading" disabled>
+                    Loading dishes...
                   </SelectItem>
-                ))}
+                ) : (
+                  foods.map((food) => (
+                    <SelectItem key={food.id} value={food.id}>
+                      {food.name} · {food.base_calories} kcal
+                    </SelectItem>
+                  ))
+                )}
               </SelectGroup>
             </SelectContent>
           </Select>
