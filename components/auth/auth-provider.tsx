@@ -23,18 +23,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const supabase = createClient();
 
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      setLoading(false);
-    });
+    supabase.auth.getSession().then(
+      ({ data }) => {
+        setSession(data.session);
+        setLoading(false);
+      },
+      () => {
+        setSession(null);
+        setLoading(false);
+      },
+    );
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-    });
+    let subscription: { unsubscribe: () => void } | null = null;
+    try {
+      const result = supabase.auth.onAuthStateChange((_event, session) => {
+        setSession(session);
+      });
+      subscription = result.data.subscription;
+    } catch {
+      // ignore — auth listener setup failure shouldn't crash the page
+    }
 
-    return () => subscription.unsubscribe();
+    return () => subscription?.unsubscribe();
   }, []);
 
   return (
