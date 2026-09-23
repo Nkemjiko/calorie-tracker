@@ -5,6 +5,7 @@ import { Bell, Flame } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { AuthModal } from "@/components/auth/auth-modal"
+import { ThemeToggle } from "@/components/theme-toggle"
 import { useAuth } from "@/components/auth/auth-provider"
 
 type DashboardHeaderProps = {
@@ -79,6 +80,7 @@ export function DashboardHeader({ greeting, dateLabel, streak }: DashboardHeader
           <Bell className="size-5" />
           <span className="absolute right-2.5 top-2.5 size-2 rounded-full bg-brand-orange" />
         </button>
+        <ThemeToggle />
       </div>
 
       <AuthModal open={authOpen} onOpenChange={setAuthOpen} />
