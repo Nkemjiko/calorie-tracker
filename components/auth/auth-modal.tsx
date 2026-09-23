@@ -12,7 +12,7 @@ import {
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { GoogleIcon, AppleIcon } from "@/components/auth/oauth-icons";
+import { GoogleIcon } from "@/components/auth/oauth-icons";
 import { createClient } from "@/lib/supabase/client";
 
 type AuthModalProps = {
@@ -41,20 +41,6 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
     const supabase = createClient();
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: redirectTo() },
-    });
-    if (error) {
-      setError(error.message);
-      setLoading(null);
-    }
-  };
-
-  const handleApple = async () => {
-    setLoading("apple");
-    setError(null);
-    const supabase = createClient();
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "apple",
       options: { redirectTo: redirectTo() },
     });
     if (error) {
@@ -117,20 +103,6 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
             Continue with Google
           </Button>
 
-          <Button
-            variant="outline"
-            size="lg"
-            className="w-full bg-background"
-            onClick={handleApple}
-            disabled={loading !== null}
-          >
-            {loading === "apple" ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <AppleIcon className="size-4" />
-            )}
-            Continue with Apple
-          </Button>
         </div>
 
         <div className="flex items-center gap-3">
